@@ -5,8 +5,14 @@ import {
   BridgeOutStatus,
 } from "../stores/transactionChecklistStore";
 import { EventWithTime } from "../utils/utils";
+import { Step } from "react-joyride";
 
 const selectTokenString = "select token and amount";
+export const switchBridgingClassName = "switch-bridging";
+export const transferBoxClassName = "transfer-box";
+export const switchNetworkButtonClassName = "switch-network";
+export const sendButtonClassName = "send-button";
+export const selectTokenClassName = "select-token";
 export interface ChecklistTracker {
   [key: number]: ChecklistInfo;
 }
@@ -18,6 +24,7 @@ interface ChecklistInfo {
   next: number;
   isCheckpoint: boolean;
   label: string;
+  walkthroughId: string;
   checkFunction: (...args: any[]) => boolean;
 }
 export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
@@ -26,6 +33,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SWTICH_TO_ETH,
     isCheckpoint: true,
     label: "select ethereum to bridge",
+    walkthroughId: switchBridgingClassName,
     checkFunction: (txType: string) => txType == "Bridge",
   },
   [BridgeInStatus.SWTICH_TO_ETH]: {
@@ -33,6 +41,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SELECT_ERC20_TOKEN,
     isCheckpoint: false,
     label: "switch to ethereum network",
+    walkthroughId: transferBoxClassName,
     checkFunction: (chainId: number) => chainId == ETHMainnet.chainId,
   },
   [BridgeInStatus.SELECT_ERC20_TOKEN]: {
@@ -40,6 +49,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SEND_FUNDS_TO_GBRIDGE,
     isCheckpoint: false,
     label: selectTokenString,
+    walkthroughId: transferBoxClassName,
     checkFunction: (bridgeInDisabled: boolean) => !bridgeInDisabled,
   },
   [BridgeInStatus.SEND_FUNDS_TO_GBRIDGE]: {
@@ -47,6 +57,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.WAIT_FOR_GRBIDGE,
     isCheckpoint: false,
     label: "send funds to gBridge",
+    walkthroughId: transferBoxClassName,
     checkFunction: (txHash: string | undefined) => !!txHash,
   },
   [BridgeInStatus.WAIT_FOR_GRBIDGE]: {
@@ -54,6 +65,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SELECT_CONVERT,
     isCheckpoint: true,
     label: "wait for gBridge to process",
+    walkthroughId: transferBoxClassName,
     checkFunction: (completedTxs: EventWithTime[], currentTxHash: string) => {
       for (const tx of completedTxs) {
         if (tx.transactionHash == currentTxHash) {
@@ -68,6 +80,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SWITCH_TO_CANTO,
     isCheckpoint: false,
     label: "select bridge to evm",
+    walkthroughId: switchBridgingClassName,
     checkFunction: (txType: string) => txType == "Convert",
   },
   [BridgeInStatus.SWITCH_TO_CANTO]: {
@@ -75,6 +88,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.SELECT_NATIVE_TOKEN,
     isCheckpoint: false,
     label: "switch to canto network",
+    walkthroughId: transferBoxClassName,
     checkFunction: (chainId: number) => chainId == CantoMainnet.chainId,
   },
   [BridgeInStatus.SELECT_NATIVE_TOKEN]: {
@@ -82,6 +96,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.CONVERT,
     isCheckpoint: false,
     label: selectTokenString,
+    walkthroughId: transferBoxClassName,
     checkFunction: (convertDisabled: boolean) => !convertDisabled,
   },
   [BridgeInStatus.CONVERT]: {
@@ -89,6 +104,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.COMPLETE,
     isCheckpoint: false,
     label: "bridge token",
+    walkthroughId: transferBoxClassName,
     checkFunction: (converted: boolean) => converted,
   },
   [BridgeInStatus.COMPLETE]: {
@@ -96,6 +112,7 @@ export const BridgeInChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeInStatus.COMPLETE,
     isCheckpoint: true,
     label: "complete",
+    walkthroughId: transferBoxClassName,
     checkFunction: () => true,
   },
 };
@@ -105,6 +122,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.SWITCH_TO_CANTO,
     isCheckpoint: true,
     label: "select evm to bridge",
+    walkthroughId: switchBridgingClassName,
     checkFunction: (txType: string) => txType == "Bridge",
   },
   [BridgeOutStatus.SWITCH_TO_CANTO]: {
@@ -112,6 +130,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.SELECT_CONVERT_TOKEN,
     isCheckpoint: false,
     label: "switch to canto network",
+    walkthroughId: switchNetworkButtonClassName,
     checkFunction: (chainId: number) => chainId == CantoMainnet.chainId,
   },
   [BridgeOutStatus.SELECT_CONVERT_TOKEN]: {
@@ -119,6 +138,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.CONVERT_COIN,
     isCheckpoint: false,
     label: selectTokenString,
+    walkthroughId: selectTokenClassName,
     checkFunction: (convertDisabled: boolean) => !convertDisabled,
   },
   [BridgeOutStatus.CONVERT_COIN]: {
@@ -126,6 +146,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.SELECT_BRIDGE,
     isCheckpoint: false,
     label: "send token to bridge",
+    walkthroughId: sendButtonClassName,
     checkFunction: (converted: boolean) => converted,
   },
   [BridgeOutStatus.SELECT_BRIDGE]: {
@@ -133,6 +154,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.SELECT_NATIVE_TOKEN,
     isCheckpoint: true,
     label: "select bridge to cosmos network",
+    walkthroughId: switchBridgingClassName,
     checkFunction: (txType: string) => txType == "Convert",
   },
   [BridgeOutStatus.SELECT_NATIVE_TOKEN]: {
@@ -140,6 +162,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.SEND_TO_GRBIDGE,
     isCheckpoint: false,
     label: selectTokenString,
+    walkthroughId: selectTokenClassName,
     checkFunction: (bridgeOutDisabled: boolean) => !bridgeOutDisabled,
   },
   [BridgeOutStatus.SEND_TO_GRBIDGE]: {
@@ -147,6 +170,7 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.COMPLETE,
     isCheckpoint: false,
     label: "send token to cosmos network",
+    walkthroughId: sendButtonClassName,
     checkFunction: (completed: boolean) => completed,
   },
   [BridgeOutStatus.COMPLETE]: {
@@ -154,6 +178,19 @@ export const BridgeOutChecklistFunctionTracker: ChecklistTracker = {
     next: BridgeOutStatus.COMPLETE,
     isCheckpoint: true,
     label: "complete",
+    walkthroughId: "title",
     checkFunction: () => true,
   },
 };
+
+export function getWalkthroughSteps(tracker: ChecklistTracker): Step[] {
+  return Object.entries(tracker).map(([key, value]) => {
+    return {
+      target: `.${value.walkthroughId}`,
+      content: value.label,
+      title: `Step: ${Number(key) + 1}`,
+      // hideFooter: true,
+      hideBackButton: false,
+    };
+  });
+}

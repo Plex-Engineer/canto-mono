@@ -25,6 +25,7 @@ import {
   BridgeOutStatus,
   useTransactionChecklistStore,
 } from "../stores/transactionChecklistStore";
+import { sendButtonClassName } from "../config/transactionChecklist";
 
 interface ConvertTransferBoxProps {
   cantoToEVM: boolean;
@@ -117,6 +118,7 @@ export const ConvertTransferBox = (props: ConvertTransferBoxProps) => {
       amount={props.amount}
       button={
         <PrimaryButton
+          className={sendButtonClassName}
           disabled={props.convertDisabled}
           height="big"
           weight="bold"

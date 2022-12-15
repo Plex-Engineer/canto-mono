@@ -12,6 +12,7 @@ interface ChecklistBoxProps {
   totalTxs: number;
   addTx: () => void;
   removeTx: () => void;
+  startWalkthrough: () => void;
 }
 export const BridgeChecklistBox = (props: ChecklistBoxProps) => {
   const [showChecklist, setShowChecklist] = useState(false);
@@ -69,6 +70,9 @@ export const BridgeChecklistBox = (props: ChecklistBoxProps) => {
         {"transactions tracked: " + props.totalTxs}
       </Text>
       <div className="btns">
+        <PrimaryButton onClick={props.startWalkthrough}>
+          Walkthrough
+        </PrimaryButton>
         <PrimaryButton
           onClick={() => {
             Mixpanel.events.bridgeActions.checklistActions.transactionAdded();

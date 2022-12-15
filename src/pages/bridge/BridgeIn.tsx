@@ -205,6 +205,7 @@ const BridgeIn = ({
           }
           addTx={transactionChecklistStore.addBridgeInTx}
           removeTx={transactionChecklistStore.removeBridgeInTx}
+          startWalkthrough={() => 0}
         />
         <Text
           type="title"
@@ -249,104 +250,107 @@ const BridgeIn = ({
           .
         </Text>
       </div>
-      <SwitchBridging
-        left={{
-          icon: ethIcon,
-          name: "Ethereum",
-        }}
-        right={{
-          icon: cantoIcon,
-          name: "EVM",
-        }}
-      />
-
-      {bridgeStore.transactionType == "Bridge" && (
-        <GeneralTransferBox
-          tokenSelector={
-            <TokenWallet
-              tokens={userEthTokens}
-              balance={"balanceOf"}
-              activeToken={selectedETHToken}
-              onSelect={(value) => {
-                tokenStore.setSelectedToken(
-                  value ?? EmptySelectedETHToken,
-                  SelectedTokens.ETHTOKEN
-                );
-                resetCosmos();
-                resetApprove();
-              }}
-            />
-          }
-          needAddressBox={false}
-          from={{
-            address: networkInfo.account,
-            name: "ethereum",
+      <div className="switch-bridging">
+        <SwitchBridging
+          left={{
             icon: ethIcon,
+            name: "Ethereum",
           }}
-          to={{
-            address: networkInfo.cantoAddress,
-            name: "canto (bridge)",
-            icon: bridgeIcon,
+          right={{
+            icon: cantoIcon,
+            name: "EVM",
           }}
-          networkName="ethereum"
-          onSwitch={() => {
-            activateBrowserWallet();
-            switchNetwork(1);
-          }}
-          connected={1 == Number(networkInfo.chainId)}
-          onChange={(amount: string) => setAmount(amount)}
-          max={formatUnits(
-            selectedETHToken.balanceOf,
-            selectedETHToken.decimals
-          )}
-          amount={amount}
-          button={
-            <ReactiveButton
-              destination={networkInfo.cantoAddress}
-              account={networkInfo.account}
-              gravityAddress={gravityAddress}
-              onClick={() => send(amount)}
-              approveStatus={stateApprove.status}
-              cosmosStatus={stateCosmos.status}
-              buttonText={bridgeButtonText}
-              buttonDisabled={bridgeDisabled}
-            />
-          }
         />
-      )}
+      </div>
+      <div className="transfer-box">
+        {bridgeStore.transactionType == "Bridge" && (
+          <GeneralTransferBox
+            tokenSelector={
+              <TokenWallet
+                tokens={userEthTokens}
+                balance={"balanceOf"}
+                activeToken={selectedETHToken}
+                onSelect={(value) => {
+                  tokenStore.setSelectedToken(
+                    value ?? EmptySelectedETHToken,
+                    SelectedTokens.ETHTOKEN
+                  );
+                  resetCosmos();
+                  resetApprove();
+                }}
+              />
+            }
+            needAddressBox={false}
+            from={{
+              address: networkInfo.account,
+              name: "ethereum",
+              icon: ethIcon,
+            }}
+            to={{
+              address: networkInfo.cantoAddress,
+              name: "canto (bridge)",
+              icon: bridgeIcon,
+            }}
+            networkName="ethereum"
+            onSwitch={() => {
+              activateBrowserWallet();
+              switchNetwork(1);
+            }}
+            connected={1 == Number(networkInfo.chainId)}
+            onChange={(amount: string) => setAmount(amount)}
+            max={formatUnits(
+              selectedETHToken.balanceOf,
+              selectedETHToken.decimals
+            )}
+            amount={amount}
+            button={
+              <ReactiveButton
+                destination={networkInfo.cantoAddress}
+                account={networkInfo.account}
+                gravityAddress={gravityAddress}
+                onClick={() => send(amount)}
+                approveStatus={stateApprove.status}
+                cosmosStatus={stateCosmos.status}
+                buttonText={bridgeButtonText}
+                buttonDisabled={bridgeDisabled}
+              />
+            }
+          />
+        )}
 
-      {bridgeStore.transactionType == "Convert" && (
-        <ConvertTransferBox
-          tokenSelector={
-            <TokenWallet
-              tokens={userConvertCoinNativeTokens}
-              balance="nativeBalance"
-              activeToken={selectedConvertToken}
-              onSelect={(value) => {
-                tokenStore.setSelectedToken(
-                  value ?? EmptySelectedNativeToken,
-                  SelectedTokens.CONVERTIN
-                );
-                resetCosmos();
-                resetApprove();
-              }}
-            />
-          }
-          activeToken={selectedConvertToken}
-          cantoToEVM={true}
-          cantoAddress={networkInfo.cantoAddress}
-          ETHAddress={networkInfo.account ?? ""}
-          chainId={Number(networkInfo.chainId)}
-          amount={amount}
-          onChange={(amount: string) => setAmount(amount)}
-          onSwitch={() => {
-            activateBrowserWallet();
-            addNetwork();
-          }}
-          convertButtonText={convertButtonText}
-          convertDisabled={convertDisabled}
-        />
-      )}
+        {bridgeStore.transactionType == "Convert" && (
+          <ConvertTransferBox
+            tokenSelector={
+              <TokenWallet
+                tokens={userConvertCoinNativeTokens}
+                balance="nativeBalance"
+                activeToken={selectedConvertToken}
+                onSelect={(value) => {
+                  tokenStore.setSelectedToken(
+                    value ?? EmptySelectedNativeToken,
+                    SelectedTokens.CONVERTIN
+                  );
+                  resetCosmos();
+                  resetApprove();
+                }}
+              />
+            }
+            activeToken={selectedConvertToken}
+            cantoToEVM={true}
+            cantoAddress={networkInfo.cantoAddress}
+            ETHAddress={networkInfo.account ?? ""}
+            chainId={Number(networkInfo.chainId)}
+            amount={amount}
+            onChange={(amount: string) => setAmount(amount)}
+            onSwitch={() => {
+              activateBrowserWallet();
+              addNetwork();
+            }}
+            convertButtonText={convertButtonText}
+            convertDisabled={convertDisabled}
+          />
+        )}
+      </div>
     </FadeIn>
   );
 };

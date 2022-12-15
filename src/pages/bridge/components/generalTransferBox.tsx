@@ -7,6 +7,7 @@ import { truncateNumber } from "global/utils/utils";
 import { PrimaryButton, Text } from "global/packages/src";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import { CInput } from "global/packages/src/components/atoms/Input";
+import { switchNetworkButtonClassName } from "../config/transactionChecklist";
 
 interface Props {
   connected: boolean;
@@ -66,7 +67,7 @@ export const GeneralTransferBox = (props: Props) => {
           <PrimaryButton
             height="big"
             weight="bold"
-            className="switched"
+            className={`switched ${switchNetworkButtonClassName}`}
             id="network-switch"
             onClick={props.onSwitch}
           >

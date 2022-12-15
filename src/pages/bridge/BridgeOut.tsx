@@ -40,8 +40,17 @@ import {
   useTransactionChecklistStore,
 } from "./stores/transactionChecklistStore";
 import { updateLastBridgeOutTransactionStatus } from "./utils/checklistFunctions";
-import { BridgeOutChecklistFunctionTracker } from "./config/transactionChecklist";
+import {
+  BridgeOutChecklistFunctionTracker,
+  getWalkthroughSteps,
+  selectTokenClassName,
+  sendButtonClassName,
+  switchBridgingClassName,
+} from "./config/transactionChecklist";
 import { BridgeChecklistBox } from "./components/BridgeChecklistBox";
+import ReactJoyride, { ACTIONS, EVENTS } from "react-joyride";
+import { CallBackProps as JoyrideCallBackProps } from "react-joyride";
+import { BridgeWalkthroughTooltip } from "./components/BridgeWalkthroughTooltip";
 
 interface BridgeOutProps {
   userConvertERC20Tokens: UserConvertToken[];
@@ -142,8 +151,37 @@ const BridgeOut = ({
     networkInfo.chainId,
   ]);
 
+  const [walkthroughRun, setWalkthroughRun] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  function handleJoyRideCallback(data: JoyrideCallBackProps) {
+    console.log(data)
+    if (data.action == ACTIONS.START) {
+      setStepIndex(
+        transactionChecklistStore.getCurrentBridgeOutTx()?.currentStep ?? 0
+      );
+    } else if (data.action == ACTIONS.CLOSE) {
+      setWalkthroughRun(false);
+      setStepIndex(0);
+    } else if (data.type == EVENTS.STEP_AFTER && data.index == stepIndex) {
+      //checl that index and step are the same, or will lead to false skips on init
+      setStepIndex(stepIndex + (data.action == ACTIONS.PREV ? -1 : 1));
+    }
+  }
+
   return (
     <FadeIn wrapperTag={BridgeStyled}>
+      <ReactJoyride
+        tooltipComponent={BridgeWalkthroughTooltip}
+        steps={getWalkthroughSteps(BridgeOutChecklistFunctionTracker)}
+        run={walkthroughRun}
+        callback={handleJoyRideCallback}
+        showProgress={true}
+        spotlightClicks={true}
+        disableOverlayClose={true}
+        disableScrolling={true}
+        continuous={true}
+        stepIndex={stepIndex}
+      />
       <BridgeChecklistBox
         trackerList={BridgeOutChecklistFunctionTracker}
         totalTxs={transactionChecklistStore.bridgeOut.transactions.length}
@@ -152,6 +190,7 @@ const BridgeOut = ({
         }
         addTx={transactionChecklistStore.addBridgeOutTx}
         removeTx={transactionChecklistStore.removeBridgeOutTx}
+        startWalkthrough={() => setWalkthroughRun(true)}
       />
       <div className="title">
         <Text
@@ -196,141 +235,144 @@ const BridgeOut = ({
           .
         </Text>
       </div>
-
-      <SwitchBridging
-        left={{
-          icon: cantoIcon,
-          name: "EVM",
-        }}
-        right={{
-          icon: selectedBridgeOutNetwork.icon,
-          name: selectedBridgeOutNetwork.name,
-          height: 48,
-          selectable: true,
-        }}
-      />
-
-      {bridgeStore.transactionType == "Bridge" && (
-        <ConvertTransferBox
-          tokenSelector={
-            <TokenWallet
-              tokens={userConvertERC20Tokens}
-              balance="erc20Balance"
-              activeToken={selectedConvertToken}
-              onSelect={(value) => {
-                tokenStore.setSelectedToken(
-                  value ?? EmptySelectedConvertToken,
-                  SelectedTokens.CONVERTOUT
-                );
-                setInBridgeTransaction(false);
-              }}
-            />
-          }
-          activeToken={selectedConvertToken}
-          cantoToEVM={false}
-          cantoAddress={networkInfo.cantoAddress}
-          ETHAddress={networkInfo.account ?? ""}
-          chainId={Number(networkInfo.chainId)}
-          amount={amount}
-          onChange={(amount: string) => setAmount(amount)}
-          onSwitch={() => {
-            activateBrowserWallet();
-            addNetwork();
+      <div className={switchBridgingClassName}>
+        <SwitchBridging
+          left={{
+            icon: cantoIcon,
+            name: "EVM",
           }}
-          convertButtonText={convertButtonText}
-          convertDisabled={convertDisabled}
-        />
-      )}
-
-      {bridgeStore.transactionType == "Convert" && (
-        <GeneralTransferBox
-          tokenSelector={
-            <TokenWallet
-              tokens={userCantoNativeGTokens}
-              balance="nativeBalance"
-              activeToken={selectedNativeToken}
-              onSelect={(value) => {
-                tokenStore.setSelectedToken(
-                  value ?? EmptySelectedNativeToken,
-                  SelectedTokens.BRIDGEOUT
-                );
-                setInBridgeTransaction(false);
-              }}
-            />
-          }
-          needAddressBox={true}
-          onAddressChange={(value: string) => {
-            setUserCosmosAddress(value);
-          }}
-          AddressBoxPlaceholder={`${selectedBridgeOutNetwork.name} address (${selectedBridgeOutNetwork.addressBeginning}...)`}
-          from={{
-            address: networkInfo.cantoAddress,
-            name: "canto (bridge)",
-            icon: bridgeIcon,
-          }}
-          to={{
-            address: userCosmosAddress,
-            name: selectedBridgeOutNetwork.name,
+          right={{
             icon: selectedBridgeOutNetwork.icon,
+            name: selectedBridgeOutNetwork.name,
+            height: 48,
+            selectable: true,
           }}
-          networkName="canto"
-          onSwitch={() => {
-            activateBrowserWallet();
-            addNetwork();
-          }}
-          connected={CantoMainnet.chainId == Number(networkInfo.chainId)}
-          onChange={(amount: string) => {
-            setAmount(amount);
-          }}
-          max={formatUnits(
-            selectedNativeToken.nativeBalance,
-            selectedNativeToken.decimals
-          )}
-          amount={amount}
-          button={
-            <PrimaryButton
-              height="big"
-              weight="bold"
-              disabled={bridgeDisabled}
-              onClick={async () => {
-                Mixpanel.events.transactions.transactionStarted(
-                  CantoTransactionType.BRIDGE_OUT,
-                  networkInfo.account,
-                  {
-                    tokenName: selectedNativeToken.symbol,
-                    amount: amount,
-                    bridgeOutNetwork: selectedBridgeOutNetwork.name,
-                  }
-                );
-                setInBridgeTransaction(true);
-                setBridgeConfirmation(
-                  "waiting for the metamask transaction to be signed..."
-                );
-                setPrevBridgeBalance(selectedNativeToken.nativeBalance);
-                await txIBCTransfer(
-                  userCosmosAddress,
-                  selectedBridgeOutNetwork.channel,
-                  convertStringToBigNumber(
-                    amount,
-                    selectedNativeToken.decimals
-                  ).toString(),
-                  selectedNativeToken.nativeName,
-                  CantoMainnet.cosmosAPIEndpoint,
-                  selectedBridgeOutNetwork.endpoint,
-                  ibcFee,
-                  chain,
-                  memo
-                );
-                setBridgeConfirmation(
-                  "waiting for the transaction to be verified..."
-                );
-              }}
-            >
-              {inBridgeTransaction ? bridgeConfirmation : bridgeButtonText}
-            </PrimaryButton>
-          }
         />
-      )}
+      </div>
+      <div className={selectTokenClassName}>
+        {bridgeStore.transactionType == "Bridge" && (
+          <ConvertTransferBox
+            tokenSelector={
+              <TokenWallet
+                tokens={userConvertERC20Tokens}
+                balance="erc20Balance"
+                activeToken={selectedConvertToken}
+                onSelect={(value) => {
+                  tokenStore.setSelectedToken(
+                    value ?? EmptySelectedConvertToken,
+                    SelectedTokens.CONVERTOUT
+                  );
+                  setInBridgeTransaction(false);
+                }}
+              />
+            }
+            activeToken={selectedConvertToken}
+            cantoToEVM={false}
+            cantoAddress={networkInfo.cantoAddress}
+            ETHAddress={networkInfo.account ?? ""}
+            chainId={Number(networkInfo.chainId)}
+            amount={amount}
+            onChange={(amount: string) => setAmount(amount)}
+            onSwitch={() => {
+              activateBrowserWallet();
+              addNetwork();
+            }}
+            convertButtonText={convertButtonText}
+            convertDisabled={convertDisabled}
+          />
+        )}
+
+        {bridgeStore.transactionType == "Convert" && (
+          <GeneralTransferBox
+            tokenSelector={
+              <TokenWallet
+                tokens={userCantoNativeGTokens}
+                balance="nativeBalance"
+                activeToken={selectedNativeToken}
+                onSelect={(value) => {
+                  tokenStore.setSelectedToken(
+                    value ?? EmptySelectedNativeToken,
+                    SelectedTokens.BRIDGEOUT
+                  );
+                  setInBridgeTransaction(false);
+                }}
+              />
+            }
+            needAddressBox={true}
+            onAddressChange={(value: string) => {
+              setUserCosmosAddress(value);
+            }}
+            AddressBoxPlaceholder={`${selectedBridgeOutNetwork.name} address (${selectedBridgeOutNetwork.addressBeginning}...)`}
+            from={{
+              address: networkInfo.cantoAddress,
+              name: "canto (bridge)",
+              icon: bridgeIcon,
+            }}
+            to={{
+              address: userCosmosAddress,
+              name: selectedBridgeOutNetwork.name,
+              icon: selectedBridgeOutNetwork.icon,
+            }}
+            networkName="canto"
+            onSwitch={() => {
+              activateBrowserWallet();
+              addNetwork();
+            }}
+            connected={CantoMainnet.chainId == Number(networkInfo.chainId)}
+            onChange={(amount: string) => {
+              setAmount(amount);
+            }}
+            max={formatUnits(
+              selectedNativeToken.nativeBalance,
+              selectedNativeToken.decimals
+            )}
+            amount={amount}
+            button={
+              <PrimaryButton
+                className={sendButtonClassName}
+                height="big"
+                weight="bold"
+                disabled={bridgeDisabled}
+                onClick={async () => {
+                  Mixpanel.events.transactions.transactionStarted(
+                    CantoTransactionType.BRIDGE_OUT,
+                    networkInfo.account,
+                    {
+                      tokenName: selectedNativeToken.symbol,
+                      amount: amount,
+                      bridgeOutNetwork: selectedBridgeOutNetwork.name,
+                    }
+                  );
+                  setInBridgeTransaction(true);
+                  setBridgeConfirmation(
+                    "waiting for the metamask transaction to be signed..."
+                  );
+                  setPrevBridgeBalance(selectedNativeToken.nativeBalance);
+                  await txIBCTransfer(
+                    userCosmosAddress,
+                    selectedBridgeOutNetwork.channel,
+                    convertStringToBigNumber(
+                      amount,
+                      selectedNativeToken.decimals
+                    ).toString(),
+                    selectedNativeToken.nativeName,
+                    CantoMainnet.cosmosAPIEndpoint,
+                    selectedBridgeOutNetwork.endpoint,
+                    ibcFee,
+                    chain,
+                    memo
+                  );
+                  setBridgeConfirmation(
+                    "waiting for the transaction to be verified..."
+                  );
+                }}
+              >
+                {inBridgeTransaction ? bridgeConfirmation : bridgeButtonText}
+              </PrimaryButton>
+            }
+          />
+        )}
+      </div>
     </FadeIn>
   );
 };
