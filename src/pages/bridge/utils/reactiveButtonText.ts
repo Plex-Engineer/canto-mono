@@ -32,9 +32,9 @@ export function getReactiveButtonText(
   approveStatus: TransactionState,
   cosmosStatus: TransactionState
 ): [string, boolean] {
-  if (!hasPubKey) {
-    return ["please create public key", true];
-  }
+  // if (!hasPubKey) {
+  //   return ["please create public key", true];
+  // }
   if (token.allowance.eq(-1)) {
     return [SELECT_A_TOKEN, true];
   } else if (amount.gt(token.balanceOf) && !token.allowance.isZero()) {
